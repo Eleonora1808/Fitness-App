@@ -3,9 +3,11 @@ package com.example.fitnessapp.service;
 import com.example.fitnessapp.entities.DailyLog;
 import com.example.fitnessapp.entities.Meal;
 import com.example.fitnessapp.entities.User;
+import com.example.fitnessapp.entities.Workout;
 import com.example.fitnessapp.repository.DailyLogRepository;
 import com.example.fitnessapp.repository.MealRepository;
 import com.example.fitnessapp.repository.UserRepository;
+import com.example.fitnessapp.repository.WorkoutRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,15 +21,18 @@ public class DailyLogService {
     private final DailyLogRepository dailyLogRepository;
     private final UserRepository userRepository;
     private final MealRepository mealRepository;
+    private final WorkoutRepository workoutRepository;
 
     public DailyLogService(
-        DailyLogRepository dailyLogRepository,
-        UserRepository userRepository,
-        MealRepository mealRepository
+            DailyLogRepository dailyLogRepository,
+            UserRepository userRepository,
+            MealRepository mealRepository,
+            WorkoutRepository workoutRepository
     ) {
         this.dailyLogRepository = dailyLogRepository;
         this.userRepository = userRepository;
         this.mealRepository = mealRepository;
+        this.workoutRepository = workoutRepository;
     }
 
     @Transactional
@@ -42,6 +47,7 @@ public class DailyLogService {
         log.setDate(date);
         log.setNotes(notes);
         log.setTotalCaloriesIn(0);
+        log.setTotalCaloriesOut(0);
         return dailyLogRepository.save(log);
     }
 
@@ -73,7 +79,16 @@ public class DailyLogService {
             .mapToInt(Integer::intValue)
             .sum();
 
+        int caloriesOut = workoutRepository
+                .findByUserAndDateBetween(user, date, date)
+                .stream()
+                .map(Workout::getCaloriesBurned)
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+
         log.setTotalCaloriesIn(caloriesIn);
+        log.setTotalCaloriesOut(caloriesOut);
         return dailyLogRepository.save(log);
     }
 
