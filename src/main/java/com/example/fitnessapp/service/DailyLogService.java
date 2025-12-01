@@ -24,10 +24,10 @@ public class DailyLogService {
     private final WorkoutRepository workoutRepository;
 
     public DailyLogService(
-            DailyLogRepository dailyLogRepository,
-            UserRepository userRepository,
-            MealRepository mealRepository,
-            WorkoutRepository workoutRepository
+        DailyLogRepository dailyLogRepository,
+        UserRepository userRepository,
+        MealRepository mealRepository,
+        WorkoutRepository workoutRepository
     ) {
         this.dailyLogRepository = dailyLogRepository;
         this.userRepository = userRepository;
@@ -80,12 +80,12 @@ public class DailyLogService {
             .sum();
 
         int caloriesOut = workoutRepository
-                .findByUserAndDateBetween(user, date, date)
-                .stream()
-                .map(Workout::getCaloriesBurned)
-                .filter(java.util.Objects::nonNull)
-                .mapToInt(Integer::intValue)
-                .sum();
+            .findByUserAndDateBetween(user, date, date)
+            .stream()
+            .map(Workout::getCaloriesBurned)
+            .filter(java.util.Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
 
         log.setTotalCaloriesIn(caloriesIn);
         log.setTotalCaloriesOut(caloriesOut);
@@ -106,5 +106,4 @@ public class DailyLogService {
         return dailyLogRepository.findById(dailyLogId).orElseThrow(() -> new EntityNotFoundException("Daily log not found"));
     }
 }
-
 
