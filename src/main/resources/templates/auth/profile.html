@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout}">
+<head>
+    <title>Profile - FitnessApp</title>
+</head>
+<body>
+    <div th:fragment="content">
+        <h2 class="mb-4">My Profile</h2>
+        <div class="row">
+            <div class="col-md-8">
+                <form th:action="@{/profile}" th:object="${user}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" th:field="*{username}" readonly>
+                        <small class="form-text text-muted">Username cannot be changed</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" th:field="*{email}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="age" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="age" th:field="*{age}" min="1" max="150">
+                    </div>
+                    <div class="mb-3">
+                        <label for="gender" class="form-label">Gender</label>
+                        <select class="form-select" id="gender" th:field="*{gender}">
+                            <option value="">Select...</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="heightCm" class="form-label">Height (cm)</label>
+                        <input type="number" class="form-control" id="heightCm" th:field="*{heightCm}" min="1" max="300">
+                    </div>
+                    <div class="mb-3">
+                        <label for="currentWeightKg" class="form-label">Current Weight (kg)</label>
+                        <input type="number" step="0.1" class="form-control" id="currentWeightKg" th:field="*{currentWeightKg}" min="1" max="500">
+                    </div>
+                    <div class="mb-3">
+                        <label for="goal" class="form-label">Goal</label>
+                        <select class="form-select" id="goal" th:field="*{goal}">
+                            <option value="">Select...</option>
+                            <option value="LOSE">Lose Weight</option>
+                            <option value="GAIN">Gain Weight</option>
+                            <option value="MAINTAIN">Maintain Weight</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div th:fragment="scripts"></div>
+</body>
+</html>
+

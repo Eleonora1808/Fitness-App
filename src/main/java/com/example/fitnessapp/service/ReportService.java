@@ -74,7 +74,11 @@ public class ReportService {
                 progress.get(progress.size() - 1).getWeightKg() != null ? progress.get(progress.size() - 1).getWeightKg() : BigDecimal.ZERO;
             weightChange = endWeight.subtract(startWeight);
         }
-        return new UserReportSummary(start, end, caloriesIn, caloriesOut, workoutCount, weightChange);
+        List<DailyLog> logsWithNotes = logs.stream()
+            .filter(log -> log.getNotes() != null && !log.getNotes().trim().isEmpty())
+            .sorted(Comparator.comparing(DailyLog::getDate))
+            .toList();
+        return new UserReportSummary(start, end, caloriesIn, caloriesOut, workoutCount, weightChange, logsWithNotes);
     }
 
     private User requireUser(UUID userId) {
@@ -87,7 +91,8 @@ public class ReportService {
         int totalCaloriesIn,
         int totalCaloriesOut,
         long entriesCount,
-        BigDecimal weightChange
+        BigDecimal weightChange,
+        List<DailyLog> dailyLogsWithNotes
     ) {}
 }
 

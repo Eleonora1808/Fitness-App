@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,26 +48,37 @@ public class DailyLogController {
     @GetMapping
     public String listLogs(
         Principal principal,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size,
         Model model
     ) {
         UUID userId = getUserId(principal);
+        LocalDate today = LocalDate.now();
         
-        var allLogs = dailyLogRepository.findByUserAndDateBetween(
-            userRepository.findById(userId).orElseThrow(),
+        List<DailyLog> allLogs = dailyLogService.getLogsBetween(
+            userId,
             LocalDate.MIN,
             LocalDate.MAX
         );
         
-        int start = page * size;
-        int end = Math.min(start + size, allLogs.size());
-        var pagedLogs = allLogs.subList(start, end);
+        ArrayList<DailyLog> logsWithNotes = new ArrayList<>();
+        for (DailyLog log : allLogs) {
+            if (log.getNotes() != null && !log.getNotes().trim().isEmpty()) {
+                DailyLog refreshed = dailyLogRepository.findById(log.getId()).orElse(null);
+                if (refreshed != null && refreshed.getNotes() != null && !refreshed.getNotes().trim().isEmpty()) {
+                    logsWithNotes.add(refreshed);
+                }
+            }
+        }
+        logsWithNotes.sort((a, b) -> b.getDate().compareTo(a.getDate()));
         
-        model.addAttribute("logs", pagedLogs);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", (int) Math.ceil((double) allLogs.size() / size));
-        model.addAttribute("totalItems", allLogs.size());
+        var user = userRepository.findById(userId).orElseThrow();
+        DailyLog todayLog = dailyLogRepository.findByUserAndDate(user, today);
+        if (todayLog == null) {
+            todayLog = dailyLogService.createDailyLog(userId, today, null);
+        }
+        
+        model.addAttribute("logsWithNotes", logsWithNotes);
+        model.addAttribute("todayLog", todayLog);
+        model.addAttribute("today", today);
         return "logs/list";
     }
 
@@ -84,9 +97,32 @@ public class DailyLogController {
             return "redirect:/logs/new?date=" + date;
         }
         
+        log = dailyLogRepository.findById(log.getId()).orElseThrow();
         model.addAttribute("log", log);
-        model.addAttribute("meals", mealService.listMeals(log.getId()));
         return "logs/view";
+    }
+
+    @PostMapping("/{date}/notes")
+    public String updateNotes(
+        @PathVariable String date,
+        @RequestParam String notes,
+        Principal principal,
+        RedirectAttributes redirectAttributes
+    ) {
+        UUID userId = getUserId(principal);
+        LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_DATE);
+        var user = userRepository.findById(userId).orElseThrow();
+        DailyLog log = dailyLogRepository.findByUserAndDate(user, localDate);
+        
+        if (log == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Daily log not found for this date");
+            return "redirect:/logs";
+        }
+        
+        String notesToSave = notes != null && !notes.trim().isEmpty() ? notes.trim() : null;
+        dailyLogService.updateDailyLog(log.getId(), notesToSave);
+        redirectAttributes.addFlashAttribute("successMessage", "Notes saved successfully");
+        return "redirect:/logs";
     }
 
     @GetMapping("/new")
@@ -99,7 +135,6 @@ public class DailyLogController {
             try {
                 log.setDate(LocalDate.parse(date, DateTimeFormatter.ISO_DATE));
             } catch (Exception e) {
-                // Invalid date, use today
                 log.setDate(LocalDate.now());
             }
         } else {
@@ -114,16 +149,23 @@ public class DailyLogController {
         @Valid @ModelAttribute("log") DailyLog log,
         BindingResult bindingResult,
         Principal principal,
-        RedirectAttributes redirectAttributes
+        RedirectAttributes redirectAttributes,
+        Model model
     ) {
         if (bindingResult.hasErrors()) {
             return "logs/new";
         }
 
+        try{
         UUID userId = getUserId(principal);
-        dailyLogService.createDailyLog(userId, log.getDate(), log.getNotes());
+        String notes = log.getNotes() != null && !log.getNotes().trim().isEmpty() ? log.getNotes().trim() : null;
+        dailyLogService.createDailyLog(userId, log.getDate(), notes);
         redirectAttributes.addFlashAttribute("successMessage", "Daily log created successfully");
         return "redirect:/logs";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Failed to create log: " + e.getMessage());
+            return "logs/new";
+        }
     }
 
     @GetMapping("/{id}/meals/new")

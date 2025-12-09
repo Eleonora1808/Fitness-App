@@ -23,7 +23,6 @@ public class Meal {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "daily_log_id", nullable = false)
     private DailyLog dailyLog;

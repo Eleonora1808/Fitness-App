@@ -1,11 +1,11 @@
 package com.example.fitnessapp.service;
 
+import com.example.fitnessapp.dto.FoodCalculationResponse;
 import com.example.fitnessapp.entities.DailyLog;
 import com.example.fitnessapp.entities.Meal;
 import com.example.fitnessapp.repository.DailyLogRepository;
 import com.example.fitnessapp.repository.MealRepository;
 import jakarta.persistence.EntityNotFoundException;
-
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -17,21 +17,53 @@ public class MealService {
     private final MealRepository mealRepository;
     private final DailyLogRepository dailyLogRepository;
     private final DailyLogService dailyLogService;
+    private final FoodService foodService;
 
     public MealService(
         MealRepository mealRepository,
         DailyLogRepository dailyLogRepository,
-        DailyLogService dailyLogService
+        DailyLogService dailyLogService,
+        FoodService foodService
     ) {
         this.mealRepository = mealRepository;
         this.dailyLogRepository = dailyLogRepository;
         this.dailyLogService = dailyLogService;
+        this.foodService = foodService;
     }
 
     @Transactional
     public Meal addMeal(UUID dailyLogId, Meal meal) {
         DailyLog log = requireDailyLog(dailyLogId);
         meal.setDailyLog(log);
+
+        if (meal.getFoodName() == null || meal.getFoodName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Food name is required");
+        }
+        if (meal.getServingSize() == null || meal.getServingSize().trim().isEmpty()) {
+            throw new IllegalArgumentException("Serving size is required");
+        }
+        if (meal.getMealType() == null) {
+            throw new IllegalArgumentException("Meal type is required");
+        }
+        
+        if (meal.getCalories() == null && meal.getFoodName() != null && meal.getServingSize() != null) {
+            try {
+                FoodCalculationResponse calculation = foodService.calculateCalories(
+                    meal.getFoodName(),
+                    meal.getServingSize(),
+                    1.0
+                );
+                
+                if (calculation != null) {
+                    meal.setCalories(calculation.calories());
+                    meal.setProtein(calculation.protein());
+                    meal.setCarbs(calculation.carbs());
+                    meal.setFats(calculation.fats());
+                }
+            } catch (Exception e) {
+            }
+        }
+        
         Meal saved = mealRepository.save(meal);
         recalculate(log);
         return saved;

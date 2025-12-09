@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout}">
+<head>
+    <title>Weekly Report - FitnessApp</title>
+</head>
+<body>
+    <div th:fragment="content">
+        <h2 class="mb-4">Weekly Report</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Select Week</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="/reports/weekly" class="row g-3">
+                    <div class="col-md-10">
+                        <label for="weekStart" class="form-label">Week Start Date</label>
+                        <input type="date" class="form-control" id="weekStart" name="weekStart" th:value="${weekStart}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">View Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div th:if="${summary != null}" class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Calories In</h5>
+                        <h3 class="text-primary" th:text="${summary.totalCaloriesIn}">0</h3>
+                        <p class="text-muted mb-0">Week</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Calories Out</h5>
+                        <h3 class="text-success" th:text="${summary.totalCaloriesOut}">0</h3>
+                        <p class="text-muted mb-0">Week</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Net Calories</h5>
+                        <h3 th:class="${summary.totalCaloriesIn - summary.totalCaloriesOut >= 0 ? 'text-warning' : 'text-info'}"
+                            th:text="${summary.totalCaloriesIn - summary.totalCaloriesOut}">0</h3>
+                        <p class="text-muted mb-0">Week</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Workouts</h5>
+                        <h3 class="text-info" th:text="${summary.entriesCount}">0</h3>
+                        <p class="text-muted mb-0">This Week</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4" th:if="${summary != null}">
+            <div class="card-header">
+                <h5 class="mb-0">Weight Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Weight Change:</strong> 
+                        <span th:if="${summary.weightChange != null}" 
+                              th:class="${summary.weightChange.doubleValue() > 0 ? 'text-danger' : (summary.weightChange.doubleValue() < 0 ? 'text-success' : 'text-muted')}"
+                              th:text="${summary.weightChange + ' kg'}">0 kg</span>
+                        <span th:if="${summary.weightChange == null}" class="text-muted">N/A</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Period:</strong> 
+                        <span th:text="${#temporals.format(summary.startDate, 'MMM dd')} + ' - ' + ${#temporals.format(summary.endDate, 'MMM dd, yyyy')}">Date Range</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Average Daily Calories:</strong> 
+                        <span th:text="${#numbers.formatDecimal((summary.totalCaloriesIn / 7.0), 0, 'COMMA', 0, 'POINT')}">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" th:if="${summary != null && summary.dailyLogsWithNotes != null && !summary.dailyLogsWithNotes.isEmpty()}">
+            <div class="card-header">
+                <h5 class="mb-0">Daily Notes</h5>
+            </div>
+            <div class="card-body">
+                <div th:each="log : ${summary.dailyLogsWithNotes}" class="mb-3 pb-3" th:classappend="${!logStat.last} ? 'border-bottom'">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <strong th:text="${#temporals.format(log.date, 'MMMM dd, yyyy')}">Date</strong>
+                        <a th:href="@{'/logs/' + ${log.date}}" class="btn btn-sm btn-outline-primary">View Log</a>
+                    </div>
+                    <p class="mb-0 text-muted" th:text="${log.notes}">Notes</p>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${summary == null}" class="alert alert-info">
+            No data available for this week.
+        </div>
+    </div>
+    <div th:fragment="scripts"></div>
+</body>
+</html>
+

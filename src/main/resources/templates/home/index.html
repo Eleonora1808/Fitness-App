@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout}">
+<head>
+    <title>Home - FitnessApp</title>
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="hero-section text-center py-5 mb-5">
+            <h1 class="display-4 fw-bold mb-3">Welcome to FitnessApp</h1>
+            <p class="lead mb-4">Track your meals, workouts, and progress all in one place</p>
+            <div th:unless="${#authentication != null && #authentication.isAuthenticated()}">
+                <a th:href="@{/register}" class="btn btn-primary btn-lg me-2">Get Started</a>
+                <a th:href="@{/login}" class="btn btn-outline-primary btn-lg">Login</a>
+            </div>
+            <div th:if="${#authentication != null && #authentication.isAuthenticated()}">
+                <a th:href="@{/dashboard}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"> Track Meals</h5>
+                        <p class="card-text">Log your daily meals with automatic calorie calculation from our food database.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"> Record Workouts</h5>
+                        <p class="card-text">Track your exercise sessions and automatically calculate calories burned.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"> Monitor Progress</h5>
+                        <p class="card-text">Visualize your weight trends and fitness progress over time with interactive charts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Features</h3>
+                <ul class="list-unstyled">
+                    <li class="mb-2">Daily calorie tracking</li>
+                    <li class="mb-2">Workout logging</li>
+                    <li class="mb-2">Progress visualization</li>
+                    <li class="mb-2">Food database integration</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h3>Get Started</h3>
+                <p>Create your free account today and start tracking your fitness journey!</p>
+                <a th:href="@{/register}" class="btn btn-primary">Sign Up Now</a>
+            </div>
+        </div>
+    </div>
+    <div th:fragment="scripts"></div>
+</body>
+</html>
+

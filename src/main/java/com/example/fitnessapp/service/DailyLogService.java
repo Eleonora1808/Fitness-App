@@ -40,22 +40,30 @@ public class DailyLogService {
         User user = requireUser(userId);
         DailyLog existing = dailyLogRepository.findByUserAndDate(user, date);
         if (existing != null) {
+            if (notes != null && !notes.trim().isEmpty()) {
+                existing.setNotes(notes.trim());
+                return dailyLogRepository.save(existing);
+            }
             return existing;
         }
         DailyLog log = new DailyLog();
         log.setUser(user);
         log.setDate(date);
-        log.setNotes(notes);
+        log.setNotes(notes != null && !notes.trim().isEmpty() ? notes.trim() : null);
         log.setTotalCaloriesIn(0);
         log.setTotalCaloriesOut(0);
-        return dailyLogRepository.save(log);
+        DailyLog saved = dailyLogRepository.save(log);
+        dailyLogRepository.flush();
+        return saved;
     }
 
     @Transactional
     public DailyLog updateDailyLog(UUID dailyLogId, String notes) {
         DailyLog log = requireDailyLog(dailyLogId);
-        log.setNotes(notes);
-        return dailyLogRepository.save(log);
+        log.setNotes(notes != null && !notes.trim().isEmpty() ? notes.trim() : null);
+        DailyLog saved = dailyLogRepository.save(log);
+        dailyLogRepository.flush();
+        return saved;
     }
 
     @Transactional

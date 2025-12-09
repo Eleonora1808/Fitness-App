@@ -5,6 +5,9 @@ import com.example.fitnessapp.repository.UserRepository;
 import com.example.fitnessapp.service.WorkoutService;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -43,8 +46,22 @@ public class WorkoutController {
     }
 
     @GetMapping("/new")
-    public String showNewWorkoutForm(Model model) {
-        model.addAttribute("workout", new Workout());
+    public String showNewWorkoutForm(
+        @RequestParam(required = false) String date,
+        Model model
+    ) {
+        Workout workout = new Workout();
+        if (date != null) {
+            try {
+                LocalDate localDate = LocalDate.parse(date);
+                workout.setDateTime(localDate.atTime(LocalTime.now()));
+            } catch (Exception e) {
+                workout.setDateTime(LocalDateTime.now());
+            }
+        } else {
+            workout.setDateTime(LocalDateTime.now());
+        }
+        model.addAttribute("workout", workout);
         return "workouts/new";
     }
 
@@ -60,10 +77,16 @@ public class WorkoutController {
             return "workouts/new";
         }
 
-        UUID userId = getUserId(principal);
-        workoutService.addWorkout(userId, workout, autoEstimateCalories);
-        redirectAttributes.addFlashAttribute("successMessage", "Workout added successfully");
-        return "redirect:/workouts";
+        try{
+            UUID userId = getUserId(principal);
+            workoutService.addWorkout(userId, workout, autoEstimateCalories);
+            redirectAttributes.addFlashAttribute("successMessage", "Workout added successfully");
+            return "redirect:/workouts";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error saving workout: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("workout", workout);
+            return "redirect:/workouts/new";
+        }
     }
 
     @PutMapping("/{id}")

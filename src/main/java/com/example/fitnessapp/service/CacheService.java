@@ -18,7 +18,6 @@ public class CacheService {
         cache(cacheName).ifPresent(cache -> cache.put(key, value));
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T get(String cacheName, Object key, Class<T> type) {
         return cache(cacheName).map(cache -> cache.get(key, type)).orElse(null);
     }
