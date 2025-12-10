@@ -14,6 +14,9 @@ public interface MealRepository extends JpaRepository<Meal, UUID> {
 
     @Query("select m from Meal m where m.dailyLog.user.id = :userId and m.dailyLog.date = :date")
     List<Meal> findByUserIdWithDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
+
+    @Query("select m from Meal m where m.dailyLog.user.id = :userId order by m.dailyLog.date desc, m.mealType")
+    List<Meal> findByUserId(@Param("userId") UUID userId);
 }
 
 

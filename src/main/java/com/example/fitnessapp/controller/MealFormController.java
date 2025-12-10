@@ -3,6 +3,7 @@ package com.example.fitnessapp.controller;
 import com.example.fitnessapp.entities.DailyLog;
 import com.example.fitnessapp.entities.Meal;
 import com.example.fitnessapp.repository.DailyLogRepository;
+import com.example.fitnessapp.repository.MealRepository;
 import com.example.fitnessapp.repository.UserRepository;
 import com.example.fitnessapp.service.DailyLogService;
 import com.example.fitnessapp.service.MealService;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -29,17 +31,28 @@ public class MealFormController {
     private final DailyLogRepository dailyLogRepository;
     private final UserRepository userRepository;
     private final DailyLogService dailyLogService;
+    private final MealRepository mealRepository;
 
     public MealFormController(
         MealService mealService,
         DailyLogRepository dailyLogRepository,
         UserRepository userRepository,
-        DailyLogService dailyLogService
+        DailyLogService dailyLogService,
+        MealRepository mealRepository
     ) {
         this.mealService = mealService;
         this.dailyLogRepository = dailyLogRepository;
         this.userRepository = userRepository;
         this.dailyLogService = dailyLogService;
+        this.mealRepository = mealRepository;
+    }
+
+    @GetMapping
+    public String listMeals(Principal principal, Model model) {
+        UUID userId = getUserId(principal);
+        List<Meal> meals = mealRepository.findByUserId(userId);
+        model.addAttribute("meals", meals);
+        return "meals/list";
     }
 
     @GetMapping("/new")

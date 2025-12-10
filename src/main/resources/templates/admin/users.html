@@ -35,10 +35,12 @@
                                     <div class="btn-group btn-group-sm" role="group">
                                         <button th:if="${user.active}" 
                                                 class="btn btn-warning" 
-                                                th:onclick="'blockUser(\'' + ${user.id} + '\')'">Block</button>
+                                                th:data-user-id="${user.id}"
+                                                onclick="blockUserFromButton(this)">Block</button>
                                         <button th:unless="${user.active}" 
                                                 class="btn btn-success" 
-                                                th:onclick="'unblockUser(\'' + ${user.id} + '\')'">Unblock</button>
+                                                th:data-user-id="${user.id}"
+                                                onclick="unblockUserFromButton(this)">Unblock</button>
                                         <button class="btn btn-info" 
                                                 th:data-user-id="${user.id}"
                                                 th:data-username="${user.username}"
@@ -100,31 +102,72 @@
         </div>
     </div>
     <div th:fragment="scripts">
-        <script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const csrfToken = /*[[${_csrf.token}]]*/ '';
+            const csrfHeaderName = /*[[${_csrf.headerName}]]*/ '';
+            /*]]>*/
+
             let currentUserId = null;
+
+            function blockUserFromButton(button) {
+                const userId = button.getAttribute('data-user-id');
+                blockUser(userId);
+            }
+
+            function unblockUserFromButton(button) {
+                const userId = button.getAttribute('data-user-id');
+                unblockUser(userId);
+            }
 
             function blockUser(userId) {
                 if (confirm('Are you sure you want to block this user?')) {
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    headers[csrfHeaderName] = csrfToken;
+
                     fetch('/admin/users/' + userId + '/block', {
-                        method: 'POST'
+                        method: 'POST',
+                        headers: headers,
+                        credentials: 'include'
                     })
                     .then(response => {
                         if (response.ok) {
                             location.reload();
+                        } else {
+                            alert('Failed to block user. Please try again.');
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while blocking the user.');
                     });
                 }
             }
 
             function unblockUser(userId) {
                 if (confirm('Are you sure you want to unblock this user?')) {
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    headers[csrfHeaderName] = csrfToken;
+
                     fetch('/admin/users/' + userId + '/unblock', {
-                        method: 'POST'
+                        method: 'POST',
+                        headers: headers,
+                        credentials: 'include'
                     })
                     .then(response => {
                         if (response.ok) {
                             location.reload();
+                        } else {
+                            alert('Failed to unblock user. Please try again.');
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while unblocking the user.');
                     });
                 }
             }
@@ -154,25 +197,51 @@
 
             function assignRole() {
                 const role = document.getElementById('roleSelect').value;
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[csrfHeaderName] = csrfToken;
+
                 fetch('/admin/users/' + currentUserId + '/roles?role=' + role + '&action=assign', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include'
                 })
                 .then(response => {
                     if (response.ok) {
                         location.reload();
+                    } else {
+                        alert('Failed to assign role. Please try again.');
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while assigning the role.');
                 });
             }
 
             function revokeRole() {
                 const role = document.getElementById('roleSelect').value;
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[csrfHeaderName] = csrfToken;
+
                 fetch('/admin/users/' + currentUserId + '/roles?role=' + role + '&action=remove', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: headers,
+                    credentials: 'include'
                 })
                 .then(response => {
                     if (response.ok) {
                         location.reload();
+                    } else {
+                        alert('Failed to revoke role. Please try again.');
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while revoking the role.');
                 });
             }
         </script>

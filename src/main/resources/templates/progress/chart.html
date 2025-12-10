@@ -2,7 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout}">
 <head>
     <title>Progress - FitnessApp</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div th:fragment="content">
@@ -94,7 +93,13 @@
         </div>
     </div>
     <div th:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script th:inline="javascript">
+            /*<![CDATA[*/
+            const csrfToken = /*[[${_csrf.token}]]*/ '';
+            const csrfHeaderName = /*[[${_csrf.headerName}]]*/ '';
+            /*]]>*/
+
             const labels = [];
             const weights = [];
             
@@ -103,30 +108,34 @@
             weights.push(/*[[${p.weightKg != null ? p.weightKg : 'null'}]]*/ null);
             /*[/]*/
 
-            const ctx = document.getElementById('progressChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Weight (kg)',
-                        data: weights,
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: {
-                        y: {
-                            beginAtZero: false
+            if (typeof Chart !== 'undefined') { 
+                const ctx = document.getElementById('progressChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Weight (kg)',
+                            data: weights,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                console.error('Chart.js library not loaded');
+            }
 
             document.getElementById('addProgressForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -137,11 +146,15 @@
                     notes: formData.get('notes')
                 };
 
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[csrfHeaderName] = csrfToken;
+
                 fetch('/progress', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headers,
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 })
                 .then(response => response.json())

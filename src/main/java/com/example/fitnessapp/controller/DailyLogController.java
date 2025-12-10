@@ -3,6 +3,7 @@ package com.example.fitnessapp.controller;
 import com.example.fitnessapp.entities.DailyLog;
 import com.example.fitnessapp.entities.Meal;
 import com.example.fitnessapp.repository.DailyLogRepository;
+import com.example.fitnessapp.repository.MealRepository;
 import com.example.fitnessapp.repository.UserRepository;
 import com.example.fitnessapp.service.DailyLogService;
 import com.example.fitnessapp.service.MealService;
@@ -32,17 +33,20 @@ public class DailyLogController {
     private final MealService mealService;
     private final UserRepository userRepository;
     private final DailyLogRepository dailyLogRepository;
+    private final MealRepository mealRepository;
 
     public DailyLogController(
         DailyLogService dailyLogService,
         MealService mealService,
         UserRepository userRepository,
-        DailyLogRepository dailyLogRepository
+        DailyLogRepository dailyLogRepository,
+        MealRepository mealRepository
     ) {
         this.dailyLogService = dailyLogService;
         this.mealService = mealService;
         this.userRepository = userRepository;
         this.dailyLogRepository = dailyLogRepository;
+        this.mealRepository = mealRepository;
     }
 
     @GetMapping
@@ -58,9 +62,18 @@ public class DailyLogController {
             LocalDate.MIN,
             LocalDate.MAX
         );
+
+        var user = userRepository.findById(userId).orElseThrow();
+        DailyLog todayLog = dailyLogRepository.findByUserAndDate(user, today);
+        if (todayLog == null) {
+            todayLog = dailyLogService.createDailyLog(userId, today, null);
+        }
         
         ArrayList<DailyLog> logsWithNotes = new ArrayList<>();
         for (DailyLog log : allLogs) {
+            if (log.getDate().equals(today)) {
+                continue;
+            }
             if (log.getNotes() != null && !log.getNotes().trim().isEmpty()) {
                 DailyLog refreshed = dailyLogRepository.findById(log.getId()).orElse(null);
                 if (refreshed != null && refreshed.getNotes() != null && !refreshed.getNotes().trim().isEmpty()) {
@@ -69,12 +82,6 @@ public class DailyLogController {
             }
         }
         logsWithNotes.sort((a, b) -> b.getDate().compareTo(a.getDate()));
-        
-        var user = userRepository.findById(userId).orElseThrow();
-        DailyLog todayLog = dailyLogRepository.findByUserAndDate(user, today);
-        if (todayLog == null) {
-            todayLog = dailyLogService.createDailyLog(userId, today, null);
-        }
         
         model.addAttribute("logsWithNotes", logsWithNotes);
         model.addAttribute("todayLog", todayLog);
@@ -90,6 +97,7 @@ public class DailyLogController {
     ) {
         UUID userId = getUserId(principal);
         LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_DATE);
+        LocalDate today = LocalDate.now();
         var user = userRepository.findById(userId).orElseThrow();
         DailyLog log = dailyLogRepository.findByUserAndDate(user, localDate);
         
@@ -98,7 +106,16 @@ public class DailyLogController {
         }
         
         log = dailyLogRepository.findById(log.getId()).orElseThrow();
+
+        DailyLog todayLog = dailyLogRepository.findByUserAndDate(user, today);
+        List<Meal> meals = new ArrayList<>();
+        if (todayLog != null) {
+            meals = mealRepository.findByDailyLogId(todayLog.getId());
+        }
+
         model.addAttribute("log", log);
+        model.addAttribute("meals", meals);
+        model.addAttribute("today", today);
         return "logs/view";
     }
 
@@ -128,18 +145,34 @@ public class DailyLogController {
     @GetMapping("/new")
     public String showNewLogForm(
         @RequestParam(required = false) String date,
+        Principal principal,
         Model model
     ) {
-        DailyLog log = new DailyLog();
+        LocalDate logDate;
         if (date != null) {
             try {
-                log.setDate(LocalDate.parse(date, DateTimeFormatter.ISO_DATE));
+                logDate = LocalDate.parse(date, DateTimeFormatter.ISO_DATE);
             } catch (Exception e) {
-                log.setDate(LocalDate.now());
+                logDate = LocalDate.now();
             }
         } else {
-            log.setDate(LocalDate.now());
+            logDate = LocalDate.now();
         }
+
+        DailyLog log = null;
+        if (principal != null) {
+            UUID userId = getUserId(principal);
+            var user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                log = dailyLogRepository.findByUserAndDate(user, logDate);
+            }
+        }
+        
+        if (log == null) {
+            log = new DailyLog();
+            log.setDate(logDate);
+        }
+        
         model.addAttribute("log", log);
         return "logs/new";
     }

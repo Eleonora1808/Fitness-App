@@ -10,7 +10,23 @@
             <a th:href="@{/logs/new}" class="btn btn-primary">Create New Log</a>
         </div>
         
-        <div th:if="${logsWithNotes != null && !logsWithNotes.isEmpty()}">
+       <div th:if="${todayLog != null}" class="card mb-3 border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Today's Log - <span th:text="${#temporals.format(todayLog.date, 'MMMM dd, yyyy')}">Date</span></h5>
+                <a th:href="@{'/logs/' + ${todayLog.date}}" class="btn btn-sm btn-light">Edit</a>
+            </div>
+            <div class="card-body">
+                <p th:if="${todayLog.notes != null && !todayLog.notes.trim().isEmpty()}" 
+                   class="mb-0" 
+                   style="white-space: pre-wrap;" 
+                   th:text="${todayLog.notes}">Notes</p>
+                <p th:if="${todayLog.notes == null || todayLog.notes.trim().isEmpty()}" 
+                   class="mb-0 text-muted">No notes yet. <a th:href="@{'/logs/' + ${todayLog.date}}">Add notes for today</a></p>
+            </div>
+        </div>
+        
+        <div th:if="${logsWithNotes != null && !logsWithNotes.isEmpty()}" class="mt-4">
+            <h4 class="mb-3">Previous Logs</h4>
             <div th:each="log : ${logsWithNotes}" class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Notes - <span th:text="${#temporals.format(log.date, 'MMMM dd, yyyy')}">Date</span></h5>
@@ -22,7 +38,12 @@
             </div>
         </div>
         
-        <div th:if="${logsWithNotes == null || logsWithNotes.isEmpty()}" class="card">
+        <div th:if="${(logsWithNotes == null 
+            || logsWithNotes.isEmpty()) 
+            && (todayLog == null 
+            || todayLog.notes == null 
+            || todayLog.notes.trim().isEmpty())}" 
+            class="card">
             <div class="card-body text-center text-muted py-5">
                 <p class="mb-0">No notes found. <a th:href="@{'/logs/' + ${today}}">Add notes for today</a></p>
             </div>

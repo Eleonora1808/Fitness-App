@@ -38,10 +38,14 @@ public class ProgressService {
     @Transactional(readOnly = true)
     public List<Progress> getProgressHistory(UUID userId, LocalDate start, LocalDate end) {
         User user = requireUser(userId);
+        List<Progress> entries;
         if (start == null || end == null) {
             return progressRepository.findByUserAndDateBetween(user, LocalDate.MIN, LocalDate.MAX);
+        } else {
+            entries = progressRepository.findByUserAndDateBetween(user, start, end);
         }
-        return progressRepository.findByUserAndDateBetween(user, start, end);
+        entries.sort(Comparator.comparing(Progress::getDate));
+        return entries;
     }
 
     @Transactional(readOnly = true)
