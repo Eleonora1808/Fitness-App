@@ -13,6 +13,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -71,20 +72,19 @@ public class AuthController {
 
     @PostMapping("/profile")
     public String updateProfile(
-        @Valid @ModelAttribute("user") User updatedData,
-        BindingResult bindingResult,
+        @RequestParam(required = false) Integer age,
+        @RequestParam(required = false) String currentWeightKg,
+        @RequestParam(required = false) String goal,
         Principal principal,
         RedirectAttributes redirectAttributes
     ) {
-        if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.user", bindingResult);
-            redirectAttributes.addFlashAttribute("user", updatedData);
-            return "redirect:/profile";
+        try {
+            UUID userId = getUserId(principal);
+            userService.updateProfileFields(userId, age, currentWeightKg, goal);
+            redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Failed to update profile: " + e.getMessage());
         }
-
-        UUID userId = getUserId(principal);
-        userService.updateProfile(userId, updatedData);
-        redirectAttributes.addFlashAttribute("successMessage", "Profile updated successfully");
         return "redirect:/profile";
     }
 

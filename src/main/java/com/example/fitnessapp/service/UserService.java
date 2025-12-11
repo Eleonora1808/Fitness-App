@@ -17,11 +17,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 @Service
 public class UserService implements UserDetailsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -33,28 +37,39 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public User register(User user) {
+        logger.info("Registering new user with username: {}", user.getUsername());
         if (!userRepository.findByUsername(user.getUsername()).isEmpty()
             || !userRepository.findByEmail(user.getEmail()).isEmpty()) {
+            logger.warn("Registration failed: username or email already taken for {}", user.getUsername());
             throw new DuplicateKeyException("Username or email already taken");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         if (user.getRoles().isEmpty()) {
             user.getRoles().add(Role.ROLE_USER);
         }
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("User registered successfully with ID: {}", saved.getId());
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public User login(String username, String rawPassword) {
+        logger.debug("Attempting login for user: {}", username);
         User user = userRepository
             .findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            .orElseThrow(() -> {
+                logger.warn("Login failed: user not found - {}", username);
+                return new UsernameNotFoundException("User not found");
+            });
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            logger.warn("Login failed: invalid credentials for user {}", username);
             throw new BadCredentialsException("Invalid credentials");
         }
         if (Boolean.FALSE.equals(user.getActive())) {
+            logger.warn("Login failed: user is blocked - {}", username);
             throw new BadCredentialsException("User is blocked");
         }
+        logger.info("User logged in successfully: {}", username);
         return user;
     }
 
@@ -64,15 +79,21 @@ public class UserService implements UserDetailsService {
         User user = userRepository
             .findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        boolean enabled = Boolean.TRUE.equals(user.getActive());
         return new org.springframework.security.core.userdetails.User(
             user.getUsername(),
             user.getPassword(),
+            enabled,
+            true,   
+            true,    
+            true,    
             user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.name())).collect(Collectors.toSet())
         );
     }
 
     @Transactional
     public User updateProfile(UUID userId, User updatedData) {
+        logger.info("Updating profile for user ID: {}", userId);
         User user = requireUser(userId);
         if (StringUtils.hasText(updatedData.getEmail())) {
             user.setEmail(updatedData.getEmail());
@@ -92,31 +113,76 @@ public class UserService implements UserDetailsService {
         if (updatedData.getGoal() != null) {
             user.setGoal(updatedData.getGoal());
         }
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("Profile updated successfully for user ID: {}", userId);
+        return saved;
+    }
+
+    @Transactional
+    public User updateProfileFields(UUID userId, Integer age, String currentWeightKgStr, String goalStr) {
+        logger.info("Updating profile fields for user ID: {}, age: {}, weight: {}, goal: {}", userId, age, currentWeightKgStr, goalStr);
+        User user = requireUser(userId);
+        
+        user.setAge(age);
+        
+        if (currentWeightKgStr != null && !currentWeightKgStr.trim().isEmpty()) {
+            try {
+                user.setCurrentWeightKg(new java.math.BigDecimal(currentWeightKgStr));
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid weight format: {}", currentWeightKgStr);
+                throw new IllegalArgumentException("Invalid weight format");
+            }
+        } else {
+            user.setCurrentWeightKg(null);
+        }
+        
+        if (goalStr != null && !goalStr.trim().isEmpty()) {
+            try {
+                user.setGoal(com.example.fitnessapp.entities.Goal.valueOf(goalStr));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid goal value: {}", goalStr);
+                throw new IllegalArgumentException("Invalid goal value");
+            }
+        } else {
+            user.setGoal(null);
+        }
+        
+        User saved = userRepository.save(user);
+        logger.info("Profile fields updated successfully for user ID: {}", userId);
+        return saved;
     }
 
     @Transactional
     public void changePassword(UUID userId, String currentPassword, String newPassword) {
+        logger.info("Changing password for user ID: {}", userId);
         User user = requireUser(userId);
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            logger.warn("Password change failed: invalid current password for user ID: {}", userId);
             throw new BadCredentialsException("Current password invalid");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        logger.info("Password changed successfully for user ID: {}", userId);
     }
 
     @Transactional
     public User blockUser(UUID userId) {
+        logger.info("Blocking user ID: {}", userId);
         User user = requireUser(userId);
         user.setActive(Boolean.FALSE);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("User blocked successfully: {}", userId);
+        return saved;
     }
 
     @Transactional
     public User unblockUser(UUID userId) {
+        logger.info("Unblocking user ID: {}", userId);
         User user = requireUser(userId);
         user.setActive(Boolean.TRUE);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("User unblocked successfully: {}", userId);
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -146,4 +212,5 @@ public class UserService implements UserDetailsService {
         return userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 }
+
 

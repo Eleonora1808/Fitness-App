@@ -12,9 +12,13 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class ProgressService {
+
+     private static final Logger logger = LoggerFactory.getLogger(ProgressService.class);
 
     private final ProgressRepository progressRepository;
     private final UserRepository userRepository;
@@ -26,13 +30,16 @@ public class ProgressService {
 
     @Transactional
     public Progress addProgress(UUID userId, LocalDate date, BigDecimal weightKg, String notes) {
+        logger.info("Adding progress entry for user ID: {}, date: {}, weight: {}", userId, date, weightKg);
         User user = requireUser(userId);
         Progress progress = new Progress();
         progress.setUser(user);
         progress.setDate(date);
         progress.setWeightKg(weightKg);
         progress.setMeasurementNotes(notes);
-        return progressRepository.save(progress);
+        Progress saved = progressRepository.save(progress);
+        logger.info("Progress entry added successfully with ID: {}", saved.getId());
+        return saved;
     }
 
     @Transactional(readOnly = true)

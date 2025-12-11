@@ -9,11 +9,15 @@ import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WorkoutService {
+
+    private static final Logger logger = LoggerFactory.getLogger(WorkoutService.class);
 
     private final WorkoutRepository workoutRepository;
     private final UserRepository userRepository;
@@ -31,6 +35,7 @@ public class WorkoutService {
 
     @Transactional
     public Workout addWorkout(UUID userId, Workout workout, boolean autoEstimateCalories) {
+        logger.info("Adding workout for user ID: {}, type: {}", userId, workout.getType());
         User user = requireUser(userId);
         workout.setUser(user);
         if (autoEstimateCalories || workout.getCaloriesBurned() == null) {
@@ -38,11 +43,13 @@ public class WorkoutService {
         }
         Workout saved = workoutRepository.save(workout);
         recalculateLog(saved);
+        logger.info("Workout added successfully with ID: {}", saved.getId());
         return saved;
     }
 
     @Transactional
     public Workout updateWorkout(UUID workoutId, Workout updates, boolean autoEstimateCalories) {
+        logger.info("Updating workout ID: {}", workoutId);
         Workout workout = requireWorkout(workoutId);
         if (updates.getType() != null) {
             workout.setType(updates.getType());
@@ -63,16 +70,19 @@ public class WorkoutService {
         }
         Workout saved = workoutRepository.save(workout);
         recalculateLog(saved);
+        logger.info("Workout updated successfully: {}", workoutId);
         return saved;
     }
 
     @Transactional
     public void deleteWorkout(UUID workoutId) {
+        logger.info("Deleting workout ID: {}", workoutId);
         Workout workout = requireWorkout(workoutId);
         LocalDate date = workout.getDateTime().toLocalDate();
         UUID userId = workout.getUser().getId();
         workoutRepository.delete(workout);
         dailyLogService.computeDailyTotals(userId, date);
+        logger.info("Workout deleted successfully: {}", workoutId);
     }
 
     @Transactional(readOnly = true)

@@ -14,9 +14,13 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class DailyLogService {
+
+    private static final Logger logger = LoggerFactory.getLogger(DailyLogService.class);
 
     private final DailyLogRepository dailyLogRepository;
     private final UserRepository userRepository;
@@ -37,13 +41,17 @@ public class DailyLogService {
 
     @Transactional
     public DailyLog createDailyLog(UUID userId, LocalDate date, String notes) {
+        logger.info("Creating daily log for user ID: {}, date: {}", userId, date);
         User user = requireUser(userId);
         DailyLog existing = dailyLogRepository.findByUserAndDate(user, date);
         if (existing != null) {
             if (notes != null && !notes.trim().isEmpty()) {
                 existing.setNotes(notes.trim());
-                return dailyLogRepository.save(existing);
+                DailyLog saved = dailyLogRepository.save(existing);
+                logger.info("Updated existing daily log with notes for user ID: {}", userId);
+                return saved;
             }
+            logger.debug("Daily log already exists for user ID: {}, date: {}", userId, date);
             return existing;
         }
         DailyLog log = new DailyLog();
@@ -54,15 +62,18 @@ public class DailyLogService {
         log.setTotalCaloriesOut(0);
         DailyLog saved = dailyLogRepository.save(log);
         dailyLogRepository.flush();
+        logger.info("Daily log created successfully with ID: {}", saved.getId());
         return saved;
     }
 
     @Transactional
     public DailyLog updateDailyLog(UUID dailyLogId, String notes) {
+        logger.info("Updating daily log ID: {}", dailyLogId);
         DailyLog log = requireDailyLog(dailyLogId);
         log.setNotes(notes != null && !notes.trim().isEmpty() ? notes.trim() : null);
         DailyLog saved = dailyLogRepository.save(log);
         dailyLogRepository.flush();
+        logger.info("Daily log updated successfully: {}", dailyLogId);
         return saved;
     }
 
@@ -74,9 +85,11 @@ public class DailyLogService {
 
     @Transactional
     public DailyLog computeDailyTotals(UUID userId, LocalDate date) {
+        logger.debug("Computing daily totals for user ID: {}, date: {}", userId, date);
         User user = requireUser(userId);
         DailyLog log = dailyLogRepository.findByUserAndDate(user, date);
         if (log == null) {
+            logger.warn("Daily log not found for user ID: {}, date: {}", userId, date);
             throw new EntityNotFoundException("Daily log not found for date");
         }
         int caloriesIn = mealRepository
@@ -97,7 +110,9 @@ public class DailyLogService {
 
         log.setTotalCaloriesIn(caloriesIn);
         log.setTotalCaloriesOut(caloriesOut);
-        return dailyLogRepository.save(log);
+        DailyLog saved = dailyLogRepository.save(log);
+        logger.debug("Daily totals computed: calories in: {}, calories out: {}", caloriesIn, caloriesOut);
+        return saved;
     }
 
     @Transactional(readOnly = true)

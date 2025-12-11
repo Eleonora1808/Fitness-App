@@ -8,11 +8,15 @@ import com.example.fitnessapp.repository.MealRepository;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MealService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MealService.class);
 
     private final MealRepository mealRepository;
     private final DailyLogRepository dailyLogRepository;
@@ -33,21 +37,26 @@ public class MealService {
 
     @Transactional
     public Meal addMeal(UUID dailyLogId, Meal meal) {
+        logger.info("Adding meal to daily log ID: {}, meal type: {}", dailyLogId, meal.getMealType());
         DailyLog log = requireDailyLog(dailyLogId);
         meal.setDailyLog(log);
 
         if (meal.getFoodName() == null || meal.getFoodName().trim().isEmpty()) {
+            logger.warn("Failed to add meal: food name is required");
             throw new IllegalArgumentException("Food name is required");
         }
         if (meal.getServingSize() == null || meal.getServingSize().trim().isEmpty()) {
+            logger.warn("Failed to add meal: serving size is required");
             throw new IllegalArgumentException("Serving size is required");
         }
         if (meal.getMealType() == null) {
+            logger.warn("Failed to add meal: meal type is required");
             throw new IllegalArgumentException("Meal type is required");
         }
         
         if (meal.getCalories() == null && meal.getFoodName() != null && meal.getServingSize() != null) {
             try {
+                logger.debug("Calculating calories for meal: {}", meal.getFoodName());
                 FoodCalculationResponse calculation = foodService.calculateCalories(
                     meal.getFoodName(),
                     meal.getServingSize(),
@@ -61,16 +70,19 @@ public class MealService {
                     meal.setFats(calculation.fats());
                 }
             } catch (Exception e) {
+                logger.warn("Failed to calculate calories for meal: {}", e.getMessage());
             }
         }
         
         Meal saved = mealRepository.save(meal);
         recalculate(log);
+        logger.info("Meal added successfully with ID: {}", saved.getId());
         return saved;
     }
 
     @Transactional
     public Meal updateMeal(UUID mealId, Meal updates) {
+        logger.info("Updating meal ID: {}", mealId);
         Meal meal = requireMeal(mealId);
         if (updates.getMealType() != null) {
             meal.setMealType(updates.getMealType());
@@ -95,15 +107,18 @@ public class MealService {
         }
         Meal saved = mealRepository.save(meal);
         recalculate(meal.getDailyLog());
+        logger.info("Meal updated successfully: {}", mealId);
         return saved;
     }
 
     @Transactional
     public void deleteMeal(UUID mealId) {
+        logger.info("Deleting meal ID: {}", mealId);
         Meal meal = requireMeal(mealId);
         DailyLog log = meal.getDailyLog();
         mealRepository.delete(meal);
         recalculate(log);
+         logger.info("Meal deleted successfully: {}", mealId);
     }
 
     @Transactional(readOnly = true)

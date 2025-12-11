@@ -14,9 +14,14 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 public class ReportService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportService.class);
 
     private final DailyLogService dailyLogService;
     private final ProgressRepository progressRepository;
@@ -49,7 +54,9 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "reportCache", key = "#userId.toString() + '_' + #start.toString() + '_' + #end.toString()")
     public UserReportSummary generateSummary(UUID userId, LocalDate start, LocalDate end) {
+        logger.info("Generating report summary for user ID: {}, from {} to {}", userId, start, end);
         User user = requireUser(userId);
         List<DailyLog> logs = dailyLogService.getLogsBetween(userId, start, end);
         int caloriesIn = logs
@@ -78,7 +85,9 @@ public class ReportService {
             .filter(log -> log.getNotes() != null && !log.getNotes().trim().isEmpty())
             .sorted(Comparator.comparing(DailyLog::getDate))
             .toList();
-        return new UserReportSummary(start, end, caloriesIn, caloriesOut, workoutCount, weightChange, logsWithNotes);
+        UserReportSummary summary = new UserReportSummary(start, end, caloriesIn, caloriesOut, workoutCount, weightChange, logsWithNotes);
+        logger.info("Report summary generated: {} calories in, {} calories out, {} workouts", caloriesIn, caloriesOut, workoutCount);
+        return summary;
     }
 
     private User requireUser(UUID userId) {

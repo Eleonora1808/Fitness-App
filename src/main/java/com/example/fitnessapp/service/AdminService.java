@@ -9,9 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AdminService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminService.class);
 
     private final UserRepository userRepository;
     private final UserService userService;
@@ -28,16 +32,22 @@ public class AdminService {
 
     @Transactional
     public User assignRole(UUID userId, Role role) {
+        logger.info("Assigning role {} to user ID: {}", role, userId);
         User user = userService.requireUser(userId);
         user.getRoles().add(role);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("Role assigned successfully");
+        return saved;
     }
 
     @Transactional
     public User revokeRole(UUID userId, Role role) {
+        logger.info("Revoking role {} from user ID: {}", role, userId);
         User user = userService.requireUser(userId);
         user.getRoles().remove(role);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        logger.info("Role revoked successfully");
+        return saved;
     }
 
     @Transactional
@@ -52,8 +62,10 @@ public class AdminService {
 
     @Transactional
     public void deleteUser(UUID userId) {
+        logger.info("Deleting user ID: {}", userId);
         User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found"));
         userRepository.delete(user);
+        logger.info("User deleted successfully: {}", userId);
     }
 }
 

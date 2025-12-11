@@ -14,7 +14,7 @@ public record NutritionCalculationResponse(
         @JsonProperty("calories") Integer calories,
         @JsonProperty("protein") BigDecimal protein,
         @JsonProperty("carbs") BigDecimal carbs,
-        @JsonProperty("fat") BigDecimal fat,  // Note: "fat" (singular) to match API response
+        @JsonProperty("fat") BigDecimal fat, 
         @JsonProperty("fiber") BigDecimal fiber
     ) {}
 }
