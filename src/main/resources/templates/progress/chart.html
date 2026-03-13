@@ -52,10 +52,10 @@
                     </div>
                     <div class="col-md-4">
                         <strong>Change:</strong> 
-                        <span th:if="${trend.weightChange != null}" 
-                              th:class="${trend.weightChange.doubleValue() > 0 ? 'text-danger' : (trend.weightChange.doubleValue() < 0 ? 'text-success' : 'text-muted')}"
-                              th:text="${trend.weightChange + ' kg'}">0 kg</span>
-                        <span th:if="${trend.weightChange == null}">N/A</span>
+                        <span th:if="${trend.delta != null}" 
+                              th:class="${trend.delta.doubleValue() > 0 ? 'text-danger' : (trend.delta.doubleValue() < 0 ? 'text-success' : 'text-muted')}"
+                              th:text="${trend.delta + ' kg'}">0 kg</span>
+                        <span th:if="${trend.delta == null}">N/A</span>
                     </div>
                 </div>
             </div>
@@ -96,8 +96,8 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script th:inline="javascript">
             /*<![CDATA[*/
-            const csrfToken = /*[[${_csrf.token}]]*/ '';
-            const csrfHeaderName = /*[[${_csrf.headerName}]]*/ '';
+            const csrfToken = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+            const csrfHeaderName = /*[[${_csrf != null ? _csrf.headerName : ''}]]*/ '';
             /*]]>*/
 
             const labels = [];
@@ -149,7 +149,9 @@
                 const headers = {
                     'Content-Type': 'application/json'
                 };
-                headers[csrfHeaderName] = csrfToken;
+                if (csrfHeaderName && csrfToken) {
+                    headers[csrfHeaderName] = csrfToken;
+                }
 
                 fetch('/progress', {
                     method: 'POST',
@@ -157,11 +159,19 @@
                     credentials: 'include',
                     body: JSON.stringify(data)
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(function(text) {
+                            throw new Error('Failed to add entry: ' + (response.status) + (text ? ' - ' + text.substring(0, 100) : ''));
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function() {
                     location.reload();
                 })
-                .catch(error => {
+                .catch(function(error) {
+                    alert('Could not add entry. ' + (error.message || error));
                 });
             });
 

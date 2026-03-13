@@ -79,7 +79,7 @@
                     </div>
                     <div class="col-md-4">
                         <strong>Period:</strong> 
-                        <span th:text="${#temporals.format(summary.startDate, 'MMM dd')} + ' - ' + ${#temporals.format(summary.endDate, 'MMM dd, yyyy')}">Date Range</span>
+                        <span th:text="${#temporals.format(summary.startDate, 'MMM dd') + ' - ' + #temporals.format(summary.endDate, 'MMM dd, yyyy')}">Date Range</span>
                     </div>
                     <div class="col-md-4">
                         <strong>Average Daily Calories:</strong> 
@@ -94,7 +94,7 @@
                 <h5 class="mb-0">Daily Notes</h5>
             </div>
             <div class="card-body">
-                <div th:each="log : ${summary.dailyLogsWithNotes}" class="mb-3 pb-3" th:classappend="${!logStat.last} ? 'border-bottom'">
+                <div th:each="log, logStat : ${summary.dailyLogsWithNotes}" class="mb-3 pb-3" th:classappend="${!logStat.last} ? 'border-bottom'">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <strong th:text="${#temporals.format(log.date, 'MMMM dd, yyyy')}">Date</strong>
                         <a th:href="@{'/logs/' + ${log.date}}" class="btn btn-sm btn-outline-primary">View Log</a>

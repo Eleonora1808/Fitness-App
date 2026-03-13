@@ -67,7 +67,7 @@
                                         <br>
                                         <small class="text-muted" th:text="${#temporals.format(workout.dateTime, 'MMM dd, yyyy HH:mm')}">Date</small>
                                     </div>
-                                    <span class="badge bg-primary rounded-pill" th:text="${workout.caloriesBurned} + ' cal'">0 cal</span>
+                                    <span class="badge bg-primary rounded-pill" th:text="${workout.caloriesBurned != null ? workout.caloriesBurned + ' cal' : '0 cal'}">0 cal</span>
                                 </li>
                             </ul>
                         </div>

@@ -49,7 +49,7 @@ public class ProgressController {
     }
 
     @PostMapping
-    public ResponseEntity<Progress> addProgress(
+    public ResponseEntity<ProgressResponse> addProgress(
         Principal principal,
         @Valid @RequestBody ProgressRequest request
     ) {
@@ -60,7 +60,12 @@ public class ProgressController {
             request.weightKg(),
             request.notes()
         );
-        return ResponseEntity.ok(progress);
+        return ResponseEntity.ok(new ProgressResponse(
+            progress.getId(),
+            progress.getDate(),
+            progress.getWeightKg(),
+            progress.getMeasurementNotes()
+        ));
     }
 
     private UUID getUserId(Principal principal) {
@@ -72,5 +77,7 @@ public class ProgressController {
     }
 
     public record ProgressRequest(LocalDate date, BigDecimal weightKg, String notes) {}
+
+    public record ProgressResponse(UUID id, LocalDate date, BigDecimal weightKg, String notes) {}
 }
 

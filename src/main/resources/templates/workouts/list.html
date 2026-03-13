@@ -49,8 +49,8 @@
     <div th:fragment="scripts">
         <script th:inline="javascript">
             /*<![CDATA[*/
-            const csrfToken = /*[[${_csrf.token}]]*/ '';
-            const csrfHeaderName = /*[[${_csrf.headerName}]]*/ '';
+            const csrfToken = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+            const csrfHeaderName = /*[[${_csrf != null ? _csrf.headerName : ''}]]*/ '';
             /*]]>*/
             
             function deleteWorkout(workoutId) {
